@@ -291,7 +291,14 @@ func cropSquare(orig string, ext string) (string, error) {
 	os.Remove(f.Name())
 
 	newFile := fmt.Sprintf("%s.%s", f.Name(), ext)
-	image, _, err := imagepkg.Decode(file)
+	file2, err := os.Open(orig)
+	if err != nil {
+		return "", err
+	}
+	defer file2.Close()
+
+	image, _, err := imagepkg.Decode(file2)
+	log.Println("Crop width:", pixels, "height:", pixels, "anchor x:", int(crop_x), "anchor y:", int(crop_y))
 	cropped, err := cutter.Crop(image, cutter.Config{Width: pixels, Height: pixels, Anchor: imagepkg.Pt(int(crop_x), int(crop_y))})
 	if err != nil {
 		return "", err
