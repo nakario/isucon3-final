@@ -31,7 +31,6 @@ import (
 
 const (
 	listenAddr = ":5000"
-	tmpDir     = "/tmp/"
 
 	timeout  = 30
 	interval = 2
