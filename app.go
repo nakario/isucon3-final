@@ -610,8 +610,6 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		log.Println(filename, "not found")
-
 		data, err = convert(config.Datadir+"/icon/"+icon+".png", "png", width, height)
 		if err != nil {
 			serverError(w, err)
@@ -721,9 +719,6 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		log.Println(filename, "not found")
-		height = width
-
 		var data []byte
 		if 0 <= width {
 			path, err := cropSquare(config.Datadir+"/image/"+image+".jpg", "jpg")
