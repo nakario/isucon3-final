@@ -41,31 +41,31 @@ func main(){
 					if 0 <= width {
 						file, err := os.Open(filepath.Join(dir, path.Name()))
 						if err != nil {
-							log.Println("failed to open")
+							log.Println("failed to open", err)
 							return
 						}
 						defer file.Close()
 
 						image, _, err := imagepkg.Decode(file)
 						if err != nil {
-							log.Println("Failed to Decode")
+							log.Println("Failed to Decode", err)
 							return
 						}
 						data, err := cropSquare(image, "jpg")
 						if err != nil {
-							log.Println("Failed to crop")
+							log.Println("Failed to crop", err)
 							return
 						}
 						b, err := convert(data, "jpg", width, height)
 						if err != nil {
-							log.Println("Failed to convert")
+							log.Println("Failed to convert", err)
 							return
 						}
 						data = b
 					} else {
 						b, err := ioutil.ReadFile(filepath.Join(dir, path.Name()))
 						if err != nil {
-							log.Println("failed to read file")
+							log.Println("failed to read file", err)
 							return
 						}
 						data = b
@@ -75,11 +75,11 @@ func main(){
 					data_copy := data[:]
 					err := ioutil.WriteFile(filename, data_copy, 0777)
 					if err != nil {
-						log.Println("Failed to write file", filename)
+						log.Println("Failed to write file", filename, err)
 						return
 					}
 				} else if err != nil {
-					log.Println("Unexpected err")
+					log.Println("Unexpected err", err)
 					return
 				}
 				wg.Done()
