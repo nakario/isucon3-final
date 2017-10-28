@@ -218,13 +218,6 @@ func sha256Hex(a ...interface{}) string {
 }
 
 func convert(path string, ext string, w int, h int) ([]byte, error) {
-	f, err := ioutil.TempFile(tmpDir, "isucon")
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	defer os.Remove(f.Name())
-
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
