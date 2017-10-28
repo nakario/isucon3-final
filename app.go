@@ -162,8 +162,8 @@ func main() {
 
 	db := config.Database
 	connectionString := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?charset=utf8",
-		db.Username, db.Password, db.Host, db.Port, db.Dbname,
+		"%s:%s@unix(/var/lib/mysql/mysql.sock)/%s?charset=utf8",
+		db.Username, db.Password, db.Dbname,
 	)
 	log.Printf("db: %s", connectionString)
 	var err error
