@@ -706,12 +706,12 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 			defer file.Close()
 
 			image, _, err := imagepkg.Decode(file)
-			data, err := cropSquare(image, "jpg")
+			data2, err := cropSquare(image, "jpg")
 			if err != nil {
 				serverError(w, err)
 				return
 			}
-			b, err := convert(data, "jpg", width, height)
+			b, err := convert(data2, "jpg", width, height)
 			if err != nil {
 				serverError(w, err)
 				return
