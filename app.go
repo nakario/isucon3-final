@@ -619,7 +619,9 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = ioutil.WriteFile(filename, data, 0777)
+		log.Println("Save icon to", filename)
+		data_copy := data[:]
+		err = ioutil.WriteFile(filename, data_copy, 0777)
 		if err != nil {
 			serverError(w, err)
 			return
@@ -629,6 +631,7 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	} else {
+		log.Println("Load icon from", filename)
 		data, err = ioutil.ReadFile(filename)
 		if err != nil {
 			serverError(w, err)
@@ -745,13 +748,20 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 			data = b
 		}
 
-		ioutil.WriteFile(filename, data, 0777)
+		log.Println("Save image to", filename)
+		data_copy := data[:]
+		err := ioutil.WriteFile(filename, data_copy, 0777)
+		if err != nil {
+			log.Println("Failed to write file", filename)
+			serverError(w, err)
+			return
+		}
 	} else if err != nil {
 		log.Println("Unexpected err")
 		serverError(w, err)
 		return
 	} else {
-		log.Println("Read existing", filename)
+		log.Println("Load image from", filename)
 		data, err = ioutil.ReadFile(filename)
 		if err != nil {
 			serverError(w, err)
