@@ -17,14 +17,14 @@ func Convertfile(){
 	if err != nil {
 		return
 	}
-	ch := make(chan int, 8000)
+	ch := make(chan int, 100)
 	var wg sync.WaitGroup
 
 	for _, path := range paths {
 		for _, size := range []string{"s", "m", "l"} {
 			wg.Add(1)
+			ch <- 0
 			go func(path os.FileInfo, size string) {
-				ch <- 0
 				var width, height int
 				if size == "s" {
 					width = imageS
