@@ -143,7 +143,7 @@ func loadConfig(filename string) *Config {
 	return &config
 }
 
-func main__() {
+func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	rand.Seed(time.Now().Unix())

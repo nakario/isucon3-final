@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-func main(){
+func Convertfile(){
 	dir := "./data/image/"
 	paths, err := ioutil.ReadDir(dir)
 	if err != nil {
