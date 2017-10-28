@@ -233,17 +233,10 @@ func sha256Hex(a ...interface{}) string {
 	return hex.EncodeToString(md)
 }
 
-func convert(path string, ext string, w int, h int) ([]byte, error) {
-	file, err := os.Open(path)
+func convert(data []byte, ext string, w int, h int) ([]byte, error) {
+	image, _, err := imagepkg.Decode(bytes.NewReader(data))
 	if err != nil {
-		log.Println("Cannot open " + path)
-		return nil, err
-	}
-	defer file.Close()
-
-	image, _, err := imagepkg.Decode(file)
-	if err != nil {
-		log.Println("Cannot decode" + file.Name())
+		log.Println("Cannot decode")
 		return nil, err
 	}
 	resized := resize.Resize(uint(w), uint(h), image, resize.Lanczos3)
@@ -270,16 +263,16 @@ func convert(path string, ext string, w int, h int) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func cropSquare(orig string, ext string) (string, error) {
+func cropSquare(orig string, ext string) ([]byte, error) {
 	file, err := os.Open(orig)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer file.Close()
 
 	imageconfig, _, err := imagepkg.DecodeConfig(file)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	w := imageconfig.Width
@@ -300,16 +293,10 @@ func cropSquare(orig string, ext string) (string, error) {
 		crop_x = 0
 		crop_y = 0
 	}
-	f, err := ioutil.TempFile(tmpDir, "isucon")
-	if err != nil {
-		return "", err
-	}
-	os.Remove(f.Name())
 
-	newFile := fmt.Sprintf("%s.%s", f.Name(), ext)
 	file2, err := os.Open(orig)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer file2.Close()
 
@@ -317,26 +304,23 @@ func cropSquare(orig string, ext string) (string, error) {
 	log.Println("Crop width:", pixels, "height:", pixels, "anchor x:", int(crop_x), "anchor y:", int(crop_y))
 	cropped, err := cutter.Crop(image, cutter.Config{Width: pixels, Height: pixels, Anchor: imagepkg.Pt(int(crop_x), int(crop_y))})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	b := []byte{}
 	buf := bytes.NewBuffer(b)
 	if ext == "jpg" {
 		err := jpeg.Encode(buf, cropped, nil)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	} else if ext == "png" {
 		err := png.Encode(buf, cropped)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
-	err = ioutil.WriteFile(newFile, buf.Bytes(), 0777)
-	if err != nil {
-		return "", err
-	}
-	return newFile, nil
+
+	return buf.Bytes(), nil
 }
 
 func renderJson(w http.ResponseWriter, r Response) {
@@ -620,7 +604,20 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		data, err = convert(config.Datadir+"/icon/"+icon+".png", "png", width, height)
+		file, err := os.Open(config.Datadir+"/icon/"+icon+".png")
+		if err != nil {
+			serverError(w, err)
+			return
+		}
+		defer file.Close()
+
+		b, err := ioutil.ReadAll(file)
+		if err != nil {
+			serverError(w, err)
+			return
+		}
+
+		data, err = convert(b, "png", width, height)
 		if err != nil {
 			serverError(w, err)
 			return
@@ -731,13 +728,12 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		var data []byte
 		if 0 <= width {
-			path, err := cropSquare(config.Datadir+"/image/"+image+".jpg", "jpg")
-			defer os.Remove(path)
+			data, err := cropSquare(config.Datadir+"/image/"+image+".jpg", "jpg")
 			if err != nil {
 				serverError(w, err)
 				return
 			}
-			b, err := convert(path, "jpg", width, height)
+			b, err := convert(data, "jpg", width, height)
 			if err != nil {
 				serverError(w, err)
 				return
@@ -981,21 +977,14 @@ func updateIconHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path, err := cropSquare(f.Name(), "png")
-	defer os.Remove(path)
-	if err != nil {
-		serverError(w, err)
-		return
-	}
-
-	data, err = ioutil.ReadFile(path)
+	data2, err := cropSquare(f.Name(), "png")
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
 	iconId := sha256Hex(uuid.NewUUID())
-	err = ioutil.WriteFile(config.Datadir+"/icon/"+iconId+".png", data, 0666)
+	err = ioutil.WriteFile(config.Datadir+"/icon/"+iconId+".png", data2, 0666)
 	if err != nil {
 		serverError(w, err)
 		return
