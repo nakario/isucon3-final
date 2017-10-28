@@ -607,10 +607,33 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	height = width
 
-	data, err := convert(config.Datadir+"/icon/"+icon+".png", "png", width, height)
-	if err != nil {
+	filename := "/home/isucon/static/icon/" + size + "/" + icon + ".png"
+	var data []byte
+
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		log.Println(filename, "not found")
+
+		data, err = convert(config.Datadir+"/icon/"+icon+".png", "png", width, height)
+		if err != nil {
+			serverError(w, err)
+			return
+		}
+
+		err = ioutil.WriteFile(filename, data, 0777)
+		if err != nil {
+			serverError(w, err)
+			return
+		}
+	} else if err != nil {
+		log.Println("Unexpected error")
 		serverError(w, err)
 		return
+	} else {
+		data, err = ioutil.ReadFile(filename)
+		if err != nil {
+			serverError(w, err)
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "image/png")
 	w.Write(data)
@@ -691,29 +714,49 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 		width = imageL
 	}
 	log.Println("size: " + size)
-	height = width
 
+	filename := "/home/isucon/static/image/" + size + "/" + image + ".jpg"
 	var data []byte
-	if 0 <= width {
-		path, err := cropSquare(config.Datadir+"/image/"+image+".jpg", "jpg")
-		defer os.Remove(path)
-		if err != nil {
-			serverError(w, err)
-			return
+
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		log.Println(filename, "not found")
+		height = width
+
+		var data []byte
+		if 0 <= width {
+			path, err := cropSquare(config.Datadir+"/image/"+image+".jpg", "jpg")
+			defer os.Remove(path)
+			if err != nil {
+				serverError(w, err)
+				return
+			}
+			b, err := convert(path, "jpg", width, height)
+			if err != nil {
+				serverError(w, err)
+				return
+			}
+			data = b
+		} else {
+			b, err := ioutil.ReadFile(config.Datadir + "/image/" + image + ".jpg")
+			if err != nil {
+				serverError(w, err)
+				return
+			}
+			data = b
 		}
-		b, err := convert(path, "jpg", width, height)
-		if err != nil {
-			serverError(w, err)
-			return
-		}
-		data = b
+
+		ioutil.WriteFile(filename, data, 0777)
+	} else if err != nil {
+		log.Println("Unexpected err")
+		serverError(w, err)
+		return
 	} else {
-		b, err := ioutil.ReadFile(config.Datadir + "/image/" + image + ".jpg")
+		log.Println("Read existing", filename)
+		data, err = ioutil.ReadFile(filename)
 		if err != nil {
 			serverError(w, err)
 			return
 		}
-		data = b
 	}
 
 	w.Header().Set("Content-Type", "image/jpeg")
