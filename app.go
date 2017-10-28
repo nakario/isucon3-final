@@ -721,7 +721,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	filename := "/home/isucon/static/image/" + size + "/" + image + ".jpg"
 	var data []byte
 
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		log.Println(filename, "not found")
 		height = width
 
