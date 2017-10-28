@@ -47,7 +47,6 @@ var (
 	dbConn  *sql.DB
 	config  *Config
 	exp3 = regexp.MustCompile("^[a-zA-Z0-9_]{2,16}$")
-	exp4 = regexp.MustCompile("^image/jpe?g")
 	Id2User = make(map[int]User)
 	Key2User = make(map[string]User)
 )
@@ -398,7 +397,7 @@ func entryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType := handler.Header.Get("Content-Type")
-	if !exp4.MatchString(contentType) {
+	if !(contentType == "image/jpeg" || contentType == "image/jpg") {
 		badRequest(w)
 		return
 	}
