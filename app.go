@@ -263,20 +263,9 @@ func convert(data []byte, ext string, w int, h int) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func cropSquare(orig string, ext string) ([]byte, error) {
-	file, err := os.Open(orig)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	imageconfig, _, err := imagepkg.DecodeConfig(file)
-	if err != nil {
-		return nil, err
-	}
-
-	w := imageconfig.Width
-	h := imageconfig.Height
+func cropSquare(image imagepkg.Image, ext string) ([]byte, error) {
+	w := image.Bounds().Size().X
+	h := image.Bounds().Size().Y
 	var crop_x float32
 	var crop_y float32
 	var pixels int
@@ -294,13 +283,6 @@ func cropSquare(orig string, ext string) ([]byte, error) {
 		crop_y = 0
 	}
 
-	file2, err := os.Open(orig)
-	if err != nil {
-		return nil, err
-	}
-	defer file2.Close()
-
-	image, _, err := imagepkg.Decode(file2)
 	log.Println("Crop width:", pixels, "height:", pixels, "anchor x:", int(crop_x), "anchor y:", int(crop_y))
 	cropped, err := cutter.Crop(image, cutter.Config{Width: pixels, Height: pixels, Anchor: imagepkg.Pt(int(crop_x), int(crop_y))})
 	if err != nil {
@@ -728,7 +710,15 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		var data []byte
 		if 0 <= width {
-			data, err := cropSquare(config.Datadir+"/image/"+image+".jpg", "jpg")
+			file, err := os.Open(config.Datadir+"/image/"+image+".jpg")
+			if err != nil {
+				serverError(w, err)
+				return
+			}
+			defer file.Close()
+
+			image, _, err := imagepkg.Decode(file)
+			data, err := cropSquare(image, "jpg")
 			if err != nil {
 				serverError(w, err)
 				return
@@ -958,26 +948,12 @@ func updateIconHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := ioutil.ReadAll(uploadFile)
+	image, _, err := imagepkg.Decode(uploadFile)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
-
-	f, err := ioutil.TempFile(tmpDir, "isucon")
-	defer os.Remove(f.Name())
-	if err != nil {
-		serverError(w, err)
-		return
-	}
-
-	err = ioutil.WriteFile(f.Name(), data, 0666)
-	if err != nil {
-		serverError(w, err)
-		return
-	}
-
-	data2, err := cropSquare(f.Name(), "png")
+	data2, err := cropSquare(image, "png")
 	if err != nil {
 		serverError(w, err)
 		return
