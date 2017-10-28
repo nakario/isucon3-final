@@ -41,23 +41,31 @@ func main(){
 					if 0 <= width {
 						file, err := os.Open(filepath.Join(dir, path.Name()))
 						if err != nil {
+							log.Println("failed to open")
 							return
 						}
 						defer file.Close()
 
 						image, _, err := imagepkg.Decode(file)
+						if err != nil {
+							log.Println("Failed to Decode")
+							return
+						}
 						data, err := cropSquare(image, "jpg")
 						if err != nil {
+							log.Println("Failed to crop")
 							return
 						}
 						b, err := convert(data, "jpg", width, height)
 						if err != nil {
+							log.Println("Failed to convert")
 							return
 						}
 						data = b
 					} else {
 						b, err := ioutil.ReadFile(filepath.Join(dir, path.Name()))
 						if err != nil {
+							log.Println("failed to read file")
 							return
 						}
 						data = b
