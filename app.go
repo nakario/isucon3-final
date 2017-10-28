@@ -46,7 +46,7 @@ var (
 	exp2 = regexp.MustCompile("x")
 	exp3 = regexp.MustCompile("^[a-zA-Z0-9_]{2,16}$")
 	exp4 = regexp.MustCompile("^image/jpe?g")
-	ecp5 = regexp.MustCompile("^image/(jpe?g|png)$")
+	exp5 = regexp.MustCompile("^image/(jpe?g|png)$")
 )
 
 type Config struct {
