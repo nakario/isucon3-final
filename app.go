@@ -148,6 +148,12 @@ func main() {
 
 	rand.Seed(time.Now().Unix())
 
+	cnvrt := os.Getenv("CONVERT")
+	if cnvrt != "" {
+		Convertfile()
+		return
+	}
+
 	env := os.Getenv("ISUCON_ENV")
 	if env == "" {
 		env = "local"

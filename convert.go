@@ -17,12 +17,14 @@ func Convertfile(){
 	if err != nil {
 		return
 	}
+	ch := make(chan int, 8000)
 	var wg sync.WaitGroup
 
 	for _, path := range paths {
 		for _, size := range []string{"s", "m", "l"} {
 			wg.Add(1)
 			go func(path os.FileInfo, size string) {
+				ch <- 0
 				var width, height int
 				if size == "s" {
 					width = imageS
@@ -82,6 +84,7 @@ func Convertfile(){
 					log.Println("Unexpected err", err)
 					return
 				}
+				<- ch
 				wg.Done()
 			}(path, size)
 		}
