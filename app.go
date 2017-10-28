@@ -20,6 +20,9 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+	imagepkg "image"
+	_ "image/png"
+	_ "image/jpeg"
 
 	_ "net/http/pprof"
 )
@@ -42,8 +45,6 @@ const (
 var (
 	dbConn  *sql.DB
 	config  *Config
-	exp1 = regexp.MustCompile(" +")
-	exp2 = regexp.MustCompile("x")
 	exp3 = regexp.MustCompile("^[a-zA-Z0-9_]{2,16}$")
 	exp4 = regexp.MustCompile("^image/jpe?g")
 	exp5 = regexp.MustCompile("^image/(jpe?g|png)$")
@@ -238,14 +239,19 @@ func convert(path string, ext string, w int, h int) ([]byte, error) {
 }
 
 func cropSquare(orig string, ext string) (string, error) {
-	str, err := exec.Command("identify", orig).Output()
+	file, err := os.Open(orig)
 	if err != nil {
 		return "", err
 	}
-	size := exp1.Split(string(str), 4)[2]
-	wh := exp2.Split(size, 2)
-	w, _ := strconv.Atoi(wh[0])
-	h, _ := strconv.Atoi(wh[1])
+	defer file.Close()
+
+	image, _, err := imagepkg.DecodeConfig(file)
+	if err != nil {
+		return "", err
+	}
+
+	w := image.Width
+	h := image.Height
 	var crop_x float32
 	var crop_y float32
 	var pixels int
