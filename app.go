@@ -1,7 +1,7 @@
 package main
 
 import (
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/google/uuid"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
