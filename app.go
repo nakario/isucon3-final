@@ -49,7 +49,6 @@ var (
 	config  *Config
 	exp3 = regexp.MustCompile("^[a-zA-Z0-9_]{2,16}$")
 	exp4 = regexp.MustCompile("^image/jpe?g")
-	exp5 = regexp.MustCompile("^image/(jpe?g|png)$")
 )
 
 type Config struct {
@@ -953,7 +952,7 @@ func updateIconHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType := handler.Header.Get("Content-Type")
-	if !exp5.MatchString(contentType) {
+	if !(contentType == "image/jpeg" || contentType == "image/jpg" || contentType == "image/png") {
 		badRequest(w)
 		return
 	}
