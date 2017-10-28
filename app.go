@@ -21,10 +21,12 @@ import (
 	"strconv"
 	"time"
 	imagepkg "image"
-	_ "image/png"
-	_ "image/jpeg"
+	"image/png"
+	"image/jpeg"
+	"github.com/oliamb/cutter"
 
 	_ "net/http/pprof"
+	"bytes"
 )
 
 const (
@@ -245,13 +247,13 @@ func cropSquare(orig string, ext string) (string, error) {
 	}
 	defer file.Close()
 
-	image, _, err := imagepkg.DecodeConfig(file)
+	imageconfig, _, err := imagepkg.DecodeConfig(file)
 	if err != nil {
 		return "", err
 	}
 
-	w := image.Width
-	h := image.Height
+	w := imageconfig.Width
+	h := imageconfig.Height
 	var crop_x float32
 	var crop_y float32
 	var pixels int
@@ -275,8 +277,26 @@ func cropSquare(orig string, ext string) (string, error) {
 	os.Remove(f.Name())
 
 	newFile := fmt.Sprintf("%s.%s", f.Name(), ext)
-	cmd := exec.Command("convert", "-crop", fmt.Sprintf("%vx%v+%v+%v", pixels, pixels, crop_x, crop_y), orig, newFile)
-	if err := cmd.Run(); err != nil {
+	image, _, err := imagepkg.Decode(file)
+	cropped, err := cutter.Crop(image, cutter.Config{Width: pixels, Height: pixels, Anchor: imagepkg.Pt(int(crop_x), int(crop_y))})
+	if err != nil {
+		return "", err
+	}
+	b := []byte{}
+	buf := bytes.NewBuffer(b)
+	if ext == "jpg" {
+		err := jpeg.Encode(buf, cropped, nil)
+		if err != nil {
+			return "", err
+		}
+	} else if ext == "png" {
+		err := png.Encode(buf, cropped)
+		if err != nil {
+			return "", err
+		}
+	}
+	err = ioutil.WriteFile(newFile, buf.Bytes(), 0777)
+	if err != nil {
 		return "", err
 	}
 	return newFile, nil
