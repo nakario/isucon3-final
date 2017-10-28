@@ -690,6 +690,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		width = imageL
 	}
+	log.Println("size: " + size)
 	height = width
 
 	var data []byte
