@@ -8,6 +8,7 @@ import (
 	imagepkg "image"
 	_ "image/jpeg"
 	_ "image/png"
+	"sync"
 )
 
 func main(){
@@ -16,10 +17,12 @@ func main(){
 	if err != nil {
 		return
 	}
+	var wg sync.WaitGroup
 
 	for _, path := range paths {
 		for _, size := range []string{"s", "m", "l"} {
-			go func() {
+			wg.Add(1)
+			go func(path os.FileInfo, size string) {
 				var width, height int
 				if size == "s" {
 					width = imageS
@@ -71,7 +74,9 @@ func main(){
 					log.Println("Unexpected err")
 					return
 				}
-			}()
+				wg.Done()
+			}(path, size)
 		}
 	}
+	wg.Wait()
 }
