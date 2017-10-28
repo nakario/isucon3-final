@@ -53,7 +53,7 @@ func main(){
 						}
 						data = b
 					} else {
-						b, err := ioutil.ReadFile(config.Datadir + "/image/" + path.Name())
+						b, err := ioutil.ReadFile(filepath.Join(dir, path.Name()))
 						if err != nil {
 							return
 						}
