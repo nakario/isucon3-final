@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -24,6 +23,7 @@ import (
 	"image/png"
 	"image/jpeg"
 	"github.com/oliamb/cutter"
+	"github.com/nfnt/resize"
 
 	_ "net/http/pprof"
 	"bytes"
@@ -222,22 +222,37 @@ func convert(path string, ext string, w int, h int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	defer os.Remove(f.Name())
 
-	newFile := fmt.Sprintf("%s.%s", f.Name(), ext)
-
-	cmd := exec.Command("convert", "-geometry", fmt.Sprintf("%dx%d", w, h), path, newFile)
-	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-	defer os.Remove(newFile)
-
-	b, err := ioutil.ReadFile(newFile)
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
-	return b, nil
+	image, _, err := imagepkg.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+	resized := resize.Resize(uint(w), uint(h), image, resize.Lanczos3)
+	b := []byte{}
+	buf := bytes.NewBuffer(b)
+	if ext == "jpg" {
+		err := jpeg.Encode(buf, resized, nil)
+		if err != nil {
+			return nil, err
+		}
+	} else if ext == "png" {
+		err := png.Encode(buf, resized)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func cropSquare(orig string, ext string) (string, error) {
