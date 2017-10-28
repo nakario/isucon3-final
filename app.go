@@ -220,12 +220,14 @@ func sha256Hex(a ...interface{}) string {
 func convert(path string, ext string, w int, h int) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
+		log.Println("Cannot open " + path)
 		return nil, err
 	}
 	defer file.Close()
 
 	image, _, err := imagepkg.Decode(file)
 	if err != nil {
+		log.Println("Cannot decode" + file.Name())
 		return nil, err
 	}
 	resized := resize.Resize(uint(w), uint(h), image, resize.Lanczos3)
@@ -234,16 +236,20 @@ func convert(path string, ext string, w int, h int) ([]byte, error) {
 	if ext == "jpg" {
 		err := jpeg.Encode(buf, resized, nil)
 		if err != nil {
+			log.Println("Failed encoding jpg")
 			return nil, err
 		}
 	} else if ext == "png" {
 		err := png.Encode(buf, resized)
 		if err != nil {
+			log.Println("Failed encoding png")
 			return nil, err
 		}
 	} else {
+		log.Println("Unexpected ext " + ext)
 		return nil, err
 	}
+	log.Println("Converted size is ", len(buf.Bytes()))
 
 	return buf.Bytes(), nil
 }
