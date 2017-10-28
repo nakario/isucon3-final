@@ -42,6 +42,11 @@ const (
 var (
 	dbConn  *sql.DB
 	config  *Config
+	exp1 = regexp.MustCompile(" +")
+	exp2 = regexp.MustCompile("x")
+	exp3 = regexp.MustCompile("^[a-zA-Z0-9_]{2,16}$")
+	exp4 = regexp.MustCompile("^image/jpe?g")
+	ecp5 = regexp.MustCompile("^image/(jpe?g|png)$")
 )
 
 type Config struct {
@@ -237,8 +242,8 @@ func cropSquare(orig string, ext string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	size := regexp.MustCompile(" +").Split(string(str), 4)[2]
-	wh := regexp.MustCompile("x").Split(size, 2)
+	size := exp1.Split(string(str), 4)[2]
+	wh := exp2.Split(size, 2)
 	w, _ := strconv.Atoi(wh[0])
 	h, _ := strconv.Atoi(wh[1])
 	var crop_x float32
@@ -287,7 +292,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 
 	name := r.FormValue("name")
 
-	if !regexp.MustCompile("^[a-zA-Z0-9_]{2,16}$").MatchString(name) {
+	if !exp3.MatchString(name) {
 		badRequest(w)
 		return
 	}
@@ -367,7 +372,7 @@ func entryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType := handler.Header.Get("Content-Type")
-	if !regexp.MustCompile("^image/jpe?g").MatchString(contentType) {
+	if !exp4.MatchString(contentType) {
 		badRequest(w)
 		return
 	}
@@ -847,7 +852,7 @@ func updateIconHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType := handler.Header.Get("Content-Type")
-	if !regexp.MustCompile("^image/(jpe?g|png)$").MatchString(contentType) {
+	if !exp5.MatchString(contentType) {
 		badRequest(w)
 		return
 	}
