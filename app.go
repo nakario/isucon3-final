@@ -49,6 +49,8 @@ var (
 	config  *Config
 	exp3 = regexp.MustCompile("^[a-zA-Z0-9_]{2,16}$")
 	exp4 = regexp.MustCompile("^image/jpe?g")
+	Id2User = make(map[int]User)
+	Key2User = make(map[string]User)
 )
 
 type Config struct {
@@ -115,16 +117,9 @@ func getUser(r *http.Request) (*User, error) {
 		}
 	}
 
-	user := User{}
-	err := dbConn.QueryRow(
-		"SELECT * FROM users WHERE api_key = ?", apiKey,
-	).Scan(
-		&user.Id, &user.Name, &user.Apikey, &user.Icon,
-	)
-	if err == sql.ErrNoRows {
+	user, ok := Key2User[apiKey]
+	if !ok {
 		return nil, nil
-	} else if err != nil {
-		return nil, err
 	}
 	return &user, nil
 }
@@ -167,6 +162,28 @@ func main() {
 	if err != nil {
 		log.Panicf("Error opening database: %v", err)
 	}
+
+	rows, err := dbConn.Query("SELECT * FROM users")
+	if err != nil {
+		log.Println("Failed to load users.")
+		return
+	}
+	for rows.Next() {
+		u := User{}
+		rows.Scan(&u.Id, &u.Name, &u.Apikey, &u.Icon)
+		Id2User[u.Id] = u
+		Key2User[u.Apikey] = u
+	}
+	rows.Close()
+	err = ioutil.WriteFile("/home/isucon/default_id2user.txt", []byte(fmt.Sprintf("%#v", Id2User)), 0777)
+	if err != nil {
+		log.Panicln("Failed to write default_id2user.txt", err)
+	}
+	err = ioutil.WriteFile("/home/isucon/default_key2user.txt", []byte(fmt.Sprintf("%#v", Key2User)), 0777)
+	if err != nil {
+		log.Panicf("Failed to write default_key2user.txt", err)
+	}
+
 
 	r := mux.NewRouter()
 	r.HandleFunc("/signup", signupHandler).Methods("POST")
@@ -355,16 +372,14 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, _ := result.LastInsertId()
-	user := User{}
-	err = dbConn.QueryRow(
-		"SELECT * FROM users WHERE id = ?", id,
-	).Scan(
-		&user.Id, &user.Name, &user.Apikey, &user.Icon,
-	)
-	if err != nil {
-		serverError(w, err)
-		return
+	user := User{
+		Id: int(id),
+		Name: name,
+		Apikey: apiKey,
+		Icon: "default",
 	}
+	Id2User[int(id)] = user
+	Key2User[apiKey] = user
 
 	renderJson(w, Response{
 		"id":      user.Id,
@@ -532,15 +547,10 @@ func timelineHandler(w http.ResponseWriter, r *http.Request) {
 			if 0 < len(entries) {
 				res := []Response{}
 				for _, entry := range entries {
-					user := User{}
-					err = dbConn.QueryRow(
-						"SELECT * FROM users WHERE id = ?", entry.User,
-					).Scan(
-						&user.Id, &user.Name, &user.Apikey, &user.Icon,
-					)
-					if err != nil {
-						serverError(w, err)
-						return
+					user, ok := Id2User[entry.User]
+					if !ok {
+						log.Println("User not found(id:", entry.User, ")")
+						serverError(w, fmt.Errorf("User not found"))
 					}
 					res = append(res, Response{
 						"id":            entry.Id,
@@ -991,13 +1001,17 @@ func updateIconHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = dbConn.Exec(
-		"UPDATE users SET icon = ? WHERE id = ?",
-		iconId, user.Id,
-	)
-	if err != nil {
-		serverError(w, err)
-		return
+	go func() {
+		dbConn.Exec(
+			"UPDATE users SET icon = ? WHERE id = ?",
+			iconId, user.Id,
+		)
+	}()
+	tmpUser, ok := Id2User[user.Id]
+	if ok {
+		tmpUser.Icon = iconId
+		Id2User[user.Id] = tmpUser
+		Key2User[tmpUser.Apikey] = tmpUser
 	}
 
 	renderJson(w, Response{"icon": baseUrl.String() + "/icon/" + iconId})
