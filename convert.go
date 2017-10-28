@@ -44,7 +44,6 @@ func main(){
 							log.Println("failed to open", err)
 							return
 						}
-						defer file.Close()
 
 						image, _, err := imagepkg.Decode(file)
 						if err != nil {
@@ -62,6 +61,7 @@ func main(){
 							return
 						}
 						data = b
+						file.Close()
 					} else {
 						b, err := ioutil.ReadFile(filepath.Join(dir, path.Name()))
 						if err != nil {
